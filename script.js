@@ -19,46 +19,35 @@ const strictButton = document.querySelector("#strict");
 const onButton = document.querySelector("#on");
 const startButton = document.querySelector("#start");
 
-strictButton.addEventListener('click', (event) => {
-  if (strictButton.checked == true) {
-    strict = true;
-  } else {
-    strict = false;
+strictButton.addEventListener('click', () => {
+  strict = strictButton.checked;
+});
+
+onButton.addEventListener('click', () => {
+  on = onButton.checked;
+  updateGameStatus();
+});
+
+startButton.addEventListener('click', () => {
+  if (on) {
+    startGame();
   }
 });
 
-onButton.addEventListener('click', (event) => {
-  if (onButton.checked == true) {
-    on = true;
-    turnCounter.innerHTML = "-";
-  } else {
-    on = false;
-    turnCounter.innerHTML = "";
-    clearColor();
-    clearInterval(intervalId);
-  }
-});
-
-startButton.addEventListener('click', (event) => {
-  if (on || win) {
-    play();
-  }
-});
-
-function play() {
+function startGame() {
   win = false;
   order = [];
   playerOrder = [];
   flash = 0;
-  intervalId = 0;
   turn = 1;
   turnCounter.innerHTML = 1;
   good = true;
-  for (var i = 0; i < 20; i++) {
+
+  for (let i = 0; i < 20; i++) {
     order.push(Math.floor(Math.random() * 4) + 1);
   }
-  compTurn = true;
 
+  compTurn = true;
   intervalId = setInterval(gameTurn, 800);
 }
 
@@ -75,49 +64,47 @@ function gameTurn() {
   if (compTurn) {
     clearColor();
     setTimeout(() => {
-      if (order[flash] == 1) one();
-      if (order[flash] == 2) two();
-      if (order[flash] == 3) three();
-      if (order[flash] == 4) four();
+      switch(order[flash]) {
+        case 1:
+          one();
+          break;
+        case 2:
+          two();
+          break;
+        case 3:
+          three();
+          break;
+        case 4:
+          four();
+          break;
+      }
       flash++;
     }, 200);
   }
 }
 
 function one() {
-  if (noise) {
-    let audio = document.getElementById("clip1");
-    audio.play();
-  }
-  noise = true;
-  topLeft.style.backgroundColor = "lightgreen";
+  playSoundAndLight("clip1", topLeft, "lightgreen");
 }
 
 function two() {
-  if (noise) {
-    let audio = document.getElementById("clip2");
-    audio.play();
-  }
-  noise = true;
-  topRight.style.backgroundColor = "tomato";
+  playSoundAndLight("clip2", topRight, "tomato");
 }
 
 function three() {
-  if (noise) {
-    let audio = document.getElementById("clip3");
-    audio.play();
-  }
-  noise = true;
-  bottomLeft.style.backgroundColor = "yellow";
+  playSoundAndLight("clip3", bottomLeft, "yellow");
 }
 
 function four() {
+  playSoundAndLight("clip4", bottomRight, "lightskyblue");
+}
+
+function playSoundAndLight(audioId, element, color) {
   if (noise) {
-    let audio = document.getElementById("clip4");
-    audio.play();
+    document.getElementById(audioId).play();
   }
   noise = true;
-  bottomRight.style.backgroundColor = "lightskyblue";
+  element.style.backgroundColor = color;
 }
 
 function clearColor() {
@@ -134,88 +121,55 @@ function flashColor() {
   bottomRight.style.backgroundColor = "lightskyblue";
 }
 
-topLeft.addEventListener('click', (event) => {
-  if (on) {
-    playerOrder.push(1);
-    check();
-    one();
-    if(!win) {
-      setTimeout(() => {
-        clearColor();
-      }, 300);
+[topLeft, topRight, bottomLeft, bottomRight].forEach((element, index) => {
+  element.addEventListener('click', () => {
+    if (on) {
+      playerOrder.push(index + 1);
+      check();
+      switch(index + 1) {
+        case 1:
+          one();
+          break;
+        case 2:
+          two();
+          break;
+        case 3:
+          three();
+          break;
+        case 4:
+          four();
+          break;
+      }
+      if (!win) {
+        setTimeout(() => {
+          clearColor();
+        }, 300);
+      }
     }
-  }
-})
-
-topRight.addEventListener('click', (event) => {
-  if (on) {
-    playerOrder.push(2);
-    check();
-    two();
-    if(!win) {
-      setTimeout(() => {
-        clearColor();
-      }, 300);
-    }
-  }
-})
-
-bottomLeft.addEventListener('click', (event) => {
-  if (on) {
-    playerOrder.push(3);
-    check();
-    three();
-    if(!win) {
-      setTimeout(() => {
-        clearColor();
-      }, 300);
-    }
-  }
-})
-
-bottomRight.addEventListener('click', (event) => {
-  if (on) {
-    playerOrder.push(4);
-    check();
-    four();
-    if(!win) {
-      setTimeout(() => {
-        clearColor();
-      }, 300);
-    }
-  }
-})
+  });
+});
 
 function check() {
-  if (playerOrder[playerOrder.length - 1] !== order[playerOrder.length - 1])
+  if (playerOrder[playerOrder.length - 1] !== order[playerOrder.length - 1]) {
     good = false;
-
-  if (playerOrder.length == 20 && good) {
-    winGame();
   }
 
-  if (good == false) {
+  if (!good) {
     flashColor();
     turnCounter.innerHTML = "NO!";
     setTimeout(() => {
-      turnCounter.innerHTML = turn;
-      clearColor();
-
-      if (strict) {
-        play();
-      } else {
-        compTurn = true;
-        flash = 0;
-        playerOrder = [];
-        good = true;
-        intervalId = setInterval(gameTurn, 800);
-      }
+      turnCounter.innerHTML = "";
+      stopGame();
     }, 800);
-
     noise = false;
+    return;
   }
 
-  if (turn == playerOrder.length && good && !win) {
+  if (playerOrder.length === 20 && good) {
+    winGame();
+  }
+
+  if (turn === playerOrder.length && good && !win) {
     turn++;
     playerOrder = [];
     compTurn = true;
@@ -223,7 +177,6 @@ function check() {
     turnCounter.innerHTML = turn;
     intervalId = setInterval(gameTurn, 800);
   }
-
 }
 
 function winGame() {
@@ -231,4 +184,23 @@ function winGame() {
   turnCounter.innerHTML = "WIN!";
   on = false;
   win = true;
+}
+
+function updateGameStatus() {
+  if (!on) {
+    turnCounter.innerHTML = "";
+    clearColor();
+    clearInterval(intervalId);
+  } else {
+    turnCounter.innerHTML = "-";
+  }
+}
+
+function stopGame() {
+  clearInterval(intervalId);
+  compTurn = false;
+  playerOrder = [];
+  flash = 0;
+  turnCounter.innerHTML = "";
+  clearColor();
 }
